@@ -1,14 +1,15 @@
 package com.yashkumartech.textclassificationandfacialrecognition.presentation
 
 import android.net.Uri
-import android.os.Build
 import android.util.Log
+import android.view.ViewGroup
+import android.widget.FrameLayout
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -19,7 +20,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
@@ -36,6 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import coil.compose.AsyncImage
@@ -60,24 +62,33 @@ fun ClassificationScreen(
     val screenState by viewModel.screenState.collectAsState()
     Box(modifier = Modifier.fillMaxSize()) {
         Column() {
-            BoxWithConstraints(
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .aspectRatio(1.5f)
+                    .height(300.dp)
                     .background(MaterialTheme.colorScheme.primaryContainer)
             ) {
                 AsyncImage(
                     model = selectedImageUri,
                     contentDescription = null,
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().height(300.dp),
                     contentScale = ContentScale.Fit
                 )
                 AndroidView(
                     factory = { context ->
-                        GraphicOverlay(context, null)
+                        FrameLayout(context).apply {
+                            layoutParams = ViewGroup.LayoutParams(
+                                ViewGroup.LayoutParams.MATCH_PARENT,
+                                (300 * resources.displayMetrics.density).toInt()
+                            )
+                            Log.d("HERE", rootView.height.toString())
+                            addView(GraphicOverlay(context, null))
+                        }
                     },
                     update = { view ->
-
+                        val graphicOverlay = view.getChildAt(0) as GraphicOverlay
+                        graphicOverlay.scaleY = 1f
+                        viewModel.setGraphicOverlay(graphicOverlay)
                     }
                 )
             }
@@ -87,11 +98,26 @@ fun ClassificationScreen(
                     .clip(RoundedCornerShape(8.dp))
                     .background(MaterialTheme.colorScheme.secondaryContainer)
                     .padding(8.dp)
-                    .height(200.dp)
+                    .height(400.dp)
                     .fillMaxWidth()
             ) {
-                Text(recognizedText)
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .scrollable(
+                            orientation = Orientation.Vertical,
+                            state = rememberScrollState()
+                        )
+                ) {
+                    Text(recognizedText)
+                }
             }
+            Text(
+                "Status: $screenState",
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center
+            )
         }
         TextButton(
             onClick = {
@@ -116,7 +142,7 @@ fun ClassificationScreen(
         ) {
             Button(
                 onClick = {
-                    Log.d("HERE", "Button Pressed")
+                    viewModel.clear()
                     viewModel.runTextRecognition(selectedImageUri)
                 },
                 enabled = true
@@ -127,5 +153,5 @@ fun ClassificationScreen(
                 Text("Facial Recognition")
             }
         }
-    }    
+    }
 }
