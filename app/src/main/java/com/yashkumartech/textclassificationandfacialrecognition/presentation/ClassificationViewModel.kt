@@ -3,9 +3,9 @@ package com.yashkumartech.textclassificationandfacialrecognition.presentation
 import android.app.Application
 import android.graphics.ImageDecoder
 import android.net.Uri
-import android.os.Build
 import android.util.Log
-import androidx.annotation.RequiresApi
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.AndroidViewModel
 import com.google.android.gms.tasks.OnFailureListener
 import com.google.android.gms.tasks.OnSuccessListener
@@ -13,52 +13,45 @@ import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.Text
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
-import com.yashkumartech.textclassificationandfacialrecognition.presentation.GraphicOverlay.Graphic
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 
 
 class ClassificationViewModel(application: Application): AndroidViewModel(application) {
 
+    private val _screenState = MutableStateFlow("INITIALIZED")
+    val screenState: StateFlow<String> = _screenState
+
+    private val _recognizedText = MutableStateFlow("")
+    val recognizedText: StateFlow<String> = _recognizedText
+
     val options = TextRecognizerOptions.Builder()
         .build()
-
     fun runTextRecognition(selectedImageUri: Uri?) {
-//        val contentResolver = getApplication<Application>().contentResolver
-//        val source = ImageDecoder.createSource(selectedImageUri)
-//        val bitmap = ImageDecoder.decodeBitmap(source)
         if(selectedImageUri == null) {
-            Log.d("HERE", "Image is null")
+            _screenState.value = "NULL_IMAGE"
             return
         }
-        Log.d("HERE", "HERE1")
         val source = ImageDecoder.createSource(getApplication<Application>().contentResolver, selectedImageUri)
-        Log.d("HERE", "HERE2")
         val bitmap = ImageDecoder.decodeBitmap(source)
-        Log.d("HERE", "HERE3")
         val inputImage = InputImage.fromBitmap(bitmap, 0)
-        Log.d("HERE", "HERE4")
 
-//        val recognizer = TextRecognition.getClient(options)
-//        recognizer.process(inputImage)
-//            .addOnSuccessListener {
-//                OnSuccessListener<Text>() {
-//                    fun OnSuccess(texts: Text) {
-//                        processTextRecognitionResult(texts)
-//                    }
-//                }
-//            }
-//            .addOnFailureListener {
-//                OnFailureListener() {
-//                    fun onFailure(e: Exception) {
-//                        e.printStackTrace()
-//                    }
-//                }
-//            }
+        val recognizer = TextRecognition.getClient(options)
+        recognizer.process(inputImage)
+            .addOnSuccessListener { texts ->
+                _screenState.value = "SUCCESS"
+                processTextRecognitionResult(texts!!)
+            }
+            .addOnFailureListener { e -> // Task failed with an exception
+                _screenState.value = "ERROR"
+                e.printStackTrace()
+            }
     }
 
     private fun processTextRecognitionResult(texts: Text) {
         val blocks = texts.textBlocks
         if (blocks.size == 0) {
-//            showToast("No text found")
+            _screenState.value = "NO_TEXT_FOUND"
             return
         }
         for (i in blocks.indices) {
@@ -68,9 +61,14 @@ class ClassificationViewModel(application: Application): AndroidViewModel(applic
                 for (k in elements.indices) {
 //                    val textGraphic: Graphic = TextGraphic(mGraphicOverlay, elements[k])
 //                    mGraphicOverlay.add(textGraphic)
-                    Log.d("HERE", k.toString())
+                    _recognizedText.value = _recognizedText.value + " " + elements[k].text
+                    Log.d("HERE", elements[k].text)
                 }
             }
         }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
     }
 }

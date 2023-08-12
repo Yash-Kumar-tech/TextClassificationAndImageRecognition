@@ -12,6 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import com.yashkumartech.textclassificationandfacialrecognition.presentation.ClassificationScreen
 import com.yashkumartech.textclassificationandfacialrecognition.presentation.ClassificationViewModel
 import com.yashkumartech.textclassificationandfacialrecognition.ui.theme.TextClassificationAndFacialRecognitionTheme
@@ -19,7 +20,7 @@ import com.yashkumartech.textclassificationandfacialrecognition.ui.theme.TextCla
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val classificationViewModel = ClassificationViewModel(application = application)
+        val classificationViewModel = ViewModelProvider(this)[ClassificationViewModel::class.java]
         setContent {
             TextClassificationAndFacialRecognitionTheme {
                 // A surface container using the 'background' color from the theme
