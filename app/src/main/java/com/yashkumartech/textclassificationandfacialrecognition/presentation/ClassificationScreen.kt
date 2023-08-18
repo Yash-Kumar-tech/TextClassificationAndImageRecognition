@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -37,7 +38,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import coil.compose.AsyncImage
@@ -60,18 +63,24 @@ fun ClassificationScreen(
     )
     val recognizedText by viewModel.recognizedText.collectAsState()
     val screenState by viewModel.screenState.collectAsState()
+    var imageSize by remember {
+        mutableStateOf(IntSize.Zero)
+    }
     Box(modifier = Modifier.fillMaxSize()) {
         Column() {
             Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(300.dp)
-                    .background(MaterialTheme.colorScheme.primaryContainer)
+                    .background(MaterialTheme.colorScheme.primaryContainer),
+                contentAlignment = Alignment.Center
             ) {
                 AsyncImage(
                     model = selectedImageUri,
                     contentDescription = null,
-                    modifier = Modifier.fillMaxWidth().height(300.dp),
+                    modifier = Modifier
+                        .onSizeChanged {
+                            imageSize = it
+                        }
+                    ,
                     contentScale = ContentScale.Fit
                 )
                 AndroidView(
@@ -79,17 +88,25 @@ fun ClassificationScreen(
                         FrameLayout(context).apply {
                             layoutParams = ViewGroup.LayoutParams(
                                 ViewGroup.LayoutParams.MATCH_PARENT,
-                                (300 * resources.displayMetrics.density).toInt()
+                                ViewGroup.LayoutParams.MATCH_PARENT
                             )
-                            Log.d("HERE", rootView.height.toString())
                             addView(GraphicOverlay(context, null))
+
                         }
                     },
                     update = { view ->
+                        view.apply {
+                            layoutParams = ViewGroup.LayoutParams(
+                                imageSize.width,
+                                imageSize.height
+                            )
+                        }
+                        Log.d("HERE", imageSize.height.toString() + " " + imageSize.width)
                         val graphicOverlay = view.getChildAt(0) as GraphicOverlay
-                        graphicOverlay.scaleY = 1f
                         viewModel.setGraphicOverlay(graphicOverlay)
-                    }
+                    },
+                    modifier = Modifier
+                        .align(Alignment.Center)
                 )
             }
             Box(
@@ -98,7 +115,6 @@ fun ClassificationScreen(
                     .clip(RoundedCornerShape(8.dp))
                     .background(MaterialTheme.colorScheme.secondaryContainer)
                     .padding(8.dp)
-                    .height(400.dp)
                     .fillMaxWidth()
             ) {
                 Column(
@@ -121,7 +137,6 @@ fun ClassificationScreen(
         }
         TextButton(
             onClick = {
-                Log.d("HERE", "Button Pressed")
                 singlePhotoPickerLauncher.launch(
                     PickVisualMediaRequest(
                         ActivityResultContracts.PickVisualMedia.ImageOnly
@@ -148,9 +163,6 @@ fun ClassificationScreen(
                 enabled = true
             ) {
                 Text("Text Classification")
-            }
-            Button(onClick = { /*TODO*/ }) {
-                Text("Facial Recognition")
             }
         }
     }

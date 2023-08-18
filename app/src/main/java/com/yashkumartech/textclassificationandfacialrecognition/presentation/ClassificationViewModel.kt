@@ -3,14 +3,14 @@ package com.yashkumartech.textclassificationandfacialrecognition.presentation
 import android.app.Application
 import android.graphics.ImageDecoder
 import android.net.Uri
-import android.util.Log
-import android.widget.FrameLayout
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.AndroidViewModel
 import com.google.android.gms.tasks.OnFailureListener
 import com.google.android.gms.tasks.OnSuccessListener
 import com.google.mlkit.vision.common.InputImage
+import com.google.mlkit.vision.face.Face
+import com.google.mlkit.vision.face.FaceDetection
+import com.google.mlkit.vision.face.FaceDetector
+import com.google.mlkit.vision.face.FaceDetectorOptions
 import com.google.mlkit.vision.text.Text
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
@@ -69,6 +69,41 @@ class ClassificationViewModel(application: Application): AndroidViewModel(applic
                     _recognizedText.value = _recognizedText.value + " " + elements[k].text
                 }
             }
+        }
+    }
+
+    fun runFaceContourDetection(selectedImageUri: Uri?) {
+        if(selectedImageUri == null) {
+            return
+        }
+        val source = ImageDecoder.createSource(getApplication<Application>().contentResolver, selectedImageUri)
+        val bitmap = ImageDecoder.decodeBitmap(source)
+        val image = InputImage.fromBitmap(bitmap, 0)
+        val options = FaceDetectorOptions.Builder()
+            .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_FAST)
+            .setContourMode(FaceDetectorOptions.CONTOUR_MODE_ALL)
+            .build()
+        val detector: FaceDetector = FaceDetection.getClient(options)
+        detector.process(image)
+            .addOnSuccessListener { faces ->
+                processFaceContourDetectionResult(faces)
+            }
+            .addOnFailureListener { e ->
+                e.printStackTrace()
+            }
+    }
+
+    private fun processFaceContourDetectionResult(faces: List<Face?>) {
+        // Task completed successfully
+        if (faces.size == 0) {
+            return
+        }
+        mGraphicOverlay.clear()
+        for (i in faces.indices) {
+            val face: Face? = faces[i]
+            val faceGraphic = FaceContourGraphic(mGraphicOverlay)
+            mGraphicOverlay.add(faceGraphic)
+            faceGraphic.updateFace(face)
         }
     }
 
